@@ -98,12 +98,6 @@
   <rect width="100%" height="100%" filter="url(#metalNoise)"/>
   <rect width="100%" height="100%" fill="url(#edgeVignette)"/>
 </svg>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    
-</head>
-<body>
 <div id="sim-wrap"><svg
    width="16.25in"
    height="8.125in"
@@ -10994,7 +10988,7 @@
            rx="5.0661173"
            ry="5.1065636" /></g></g></g></svg></div>
 <footer>Suggestions? Contact me: <a href="mailto:GenSyncScope@gmail.com">GenSyncScope@gmail.com</a></footer>
-<script src="script.js"></script>
+<script src="Script.js"></script>
 
 <script>
 (function(){
@@ -11005,7 +10999,7 @@
 
     var css = `#DebugDock{ position:absolute; right:-310px; top:6px;
       width:2.9in; height:7.75in;
-      display:grid; grid-template-columns: 1fr 18px; gap:8px;
+      display:grid; grid-template-columns: 1fr; gap:8px;
       background:#161a20; border:1px solid #6b7280; border-radius:10px;
       padding:10px; box-shadow:0 2px 10px rgba(0,0,0,.35); z-index:9999;
     }
@@ -11017,51 +11011,16 @@
       padding:8px; font:bold 18px/1.35 Consolas,"Courier New",monospace;
       scrollbar-width:none; white-space:pre-wrap;
     }
-    #Debug_Log::-webkit-scrollbar{ width:0; height:0; }
-    #Debug_Slider{
-      grid-column:2/3; grid-row:1;
-      width:23px; height:100%;
-      appearance:slider-vertical; -webkit-appearance:slider-vertical;
-      writing-mode:bt-lr; background:transparent; margin:0;
-    }
-    #Debug_Slider::-webkit-slider-runnable-track{
-      width:18px; height:100%; background:#2b2f36;
-      border:1px solid #6b7280; border-radius:10px;
-    }
-    #Debug_Slider::-webkit-slider-thumb{
-      -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
-      background:#0ea5e9; border:1px solid #0b0f14; margin-top:-2px;
-    }
-    #Debug_Slider::-moz-range-track{
-      width:18px; height:100%; background:#2b2f36;
-      border:1px solid #6b7280; border-radius:10px;
-    }
-    #Debug_Slider::-moz-range-thumb{
-      width:14px; height:14px; border-radius:50%;
-      background:#0ea5e9; border:1px solid #0b0f14;
-    }`;
+    #Debug_Log::-webkit-scrollbar{ width:0; height:0; }`;
     var style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
 
     var dock = document.createElement('div');
     dock.id = 'DebugDock';
-    dock.innerHTML = '<div id="Debug_Log" spellcheck="false"></div>' +
-                     '<input id="Debug_Slider" type="range" min="0" max="100" value="0">';
+    dock.innerHTML = '<div id="Debug_Log" spellcheck="false"></div>';
     var _wrap = document.getElementById("sim-wrap");
     (_wrap ? _wrap : document.body).appendChild(dock);
 
     var area = dock.querySelector('#Debug_Log');
-    var slider = dock.querySelector('#Debug_Slider');
-
-    function syncFromSlider(){
-      var max = area.scrollHeight - area.clientHeight;
-      area.scrollTop = max * (1 - slider.value/100); // 0=bottom, 100=top
-    }
-    function syncFromArea(){
-      var max = area.scrollHeight - area.clientHeight;
-      slider.value = max > 0 ? (1 - (area.scrollTop/max))*100 : 100;
-    }
-    slider.addEventListener('input', syncFromSlider, {passive:true});
-    area.addEventListener('scroll', syncFromArea, {passive:true});
 
     function hookLog(){
       if (window.__DebugDockHooked__) return true;
@@ -11071,7 +11030,7 @@
           try{ orig.call(this, m); } finally {
             var max = area.scrollHeight - area.clientHeight;
             var atBottom = area.scrollTop >= (max - 4);
-            if (atBottom){ area.scrollTop = area.scrollHeight; slider.value = 0; }
+            if (atBottom){ area.scrollTop = area.scrollHeight; }
           }
         };
         window.__DebugDockHooked__ = true;
@@ -11082,8 +11041,6 @@
     if (!hookLog()){
       var tries = 0, iv = setInterval(function(){ tries++; if (hookLog() || tries > 40) clearInterval(iv); }, 250);
     }
-
-    requestAnimationFrame(syncFromArea);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, {once:true});

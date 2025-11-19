@@ -240,6 +240,10 @@ function angleOf(id){
     AMPS:  1046.9           // at 13.8kV
   };
 
+  // Inertia: higher values slow both acceleration and deceleration when off-grid.
+  // Tune by changing the numeric constant below—no UI controls adjust this value.
+  const INERTIA_TIME_CONST_S = 1.5;
+
   /* ///////////// Section 5.B State object (state) + exposure ///////////// */
 const state = {
   Master_Started:false,
@@ -268,6 +272,7 @@ const state = {
   Gen_kV_Var:0,           // actual terminal kV “inside the 52G”
   Gen_kV_SP:13.5,         // operator/AVR setpoint (kV)
 
+  // Governor/gate dynamics
   // Power model
   MW:0,
   MVAR:0,
@@ -302,10 +307,6 @@ const FREQ_GATE_THRESH_PCT = 20;   // gate % breakpoint for frequency
 const FREQ_GATE_LOW_HZ_PER_PCT = 3;    // Hz per % gate below threshold
 const FREQ_GATE_HIGH_HZ_PER_PCT = 0.375; // Hz per % gate above threshold
 const FREQ_GATE_HIGH_INTERCEPT_HZ = 52.5; // offset for high range
-const FREQ_DECEL_HZ_S = 3;   // fixed fall rate (Hz/s) when raw < current
-const FREQ_DECEL_SLOW_THRESH_HZ = 20; // Hz threshold to slow decel
-const FREQ_DECEL_SLOW_HZ_S = FREQ_DECEL_HZ_S / .25; // half-rate below threshold
-
 // AVR line-drop compensation (disabled if 0)
 const AVR_LDC_PU = 0.00;
 
@@ -866,7 +867,7 @@ function updatePhysics(){
     if (state['41_Brk_Var']) handleAction('41_OPEN');
   }
 
-  /// Frequency (single-owner slew): on-grid=60; off-grid rises follow gate; falls decay at fixed rate
+  /// Frequency (single-owner slew): on-grid=60; off-grid ramps toward gate-implied speed using inertia
   {
     const onGrid = !!state['52G_Brk_Var'];
      let raw;
@@ -881,11 +882,18 @@ function updatePhysics(){
     const curr   = +state.Gen_Freq_Var || 0;
     const dt_s   = Math.max(0, dt) / 1000;
 
-    const decelRate = (curr > FREQ_DECEL_SLOW_THRESH_HZ)
-      ? FREQ_DECEL_HZ_S
-      : FREQ_DECEL_SLOW_HZ_S;
-
-    const next   = (raw >= curr) ? raw : Math.max(raw, curr - decelRate * dt_s);
+    let next;
+    if (onGrid) {
+      next = raw;
+    } else {
+      const inertia = INERTIA_TIME_CONST_S;
+      const step    = (raw - curr) * (dt_s / inertia);
+      next = curr + step;
+      // Avoid overshoot when the step would cross the target
+      if (Math.sign(raw - curr) !== Math.sign(raw - next)) {
+        next = raw;
+      }
+    }
 
     state.Gen_Freq_Var = clamp(next, 0, 94);
     state.Gen_RPM_Var  = state.Gen_Freq_Var * 1.667;
