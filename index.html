@@ -10992,60 +10992,77 @@
 
 <script>
 (function(){
-  function install(){
-    if (document.getElementById('DebugDock')) return;
+    function install(){
+      if (document.getElementById('DebugDock')) return;
 
-    try{ var oldBtn = document.getElementById('debugBtn'); if (oldBtn) oldBtn.style.display = 'none'; }catch(_){}
+      try {
+        var oldBtn = document.getElementById('debugBtn');
+        if (oldBtn) oldBtn.style.display = 'none';
+      } catch (_) {}
 
-      var css = `#DebugDock{ position:absolute; right:-310px; top:6px;
-        width:2.9in; height:7.75in;
-        display:grid; grid-template-columns: 1fr; gap:8px;
-        background:#161a20; border:1px solid #6b7280; border-radius:10px;
-        padding:10px; box-shadow:0 2px 10px rgba(0,0,0,.35); z-index:9999;
+      var css = [
+        '#DebugDock{ position:absolute; right:-310px; top:6px;',
+        '  width:2.9in; height:7.75in;',
+        '  display:grid; grid-template-columns: 1fr; gap:8px;',
+        '  background:#161a20; border:1px solid #6b7280; border-radius:10px;',
+        '  padding:10px; box-shadow:0 2px 10px rgba(0,0,0,.35); z-index:9999;',
+        '}',
+        '#Debug_Log{',
+        '  grid-column:1/2; grid-row:1;',
+        '  width:95%; height:98%; resize:none; overflow:auto;',
+        '  background:#f5f5f5; color:#000000;',
+        '  border:1px solid #6b7280; border-radius:6px;',
+        '  padding:8px; font:bold 18px/1.35 Consolas,"Courier New",monospace;',
+        '  scrollbar-width:none; white-space:pre-wrap;',
+        '}',
+        '#Debug_Log::-webkit-scrollbar{ width:0; height:0; }'
+      ].join('');
+
+      var style = document.createElement('style');
+      style.textContent = css;
+      document.head.appendChild(style);
+
+      var dock = document.createElement('div');
+      dock.id = 'DebugDock';
+      dock.innerHTML = '<div id="Debug_Log" spellcheck="false"></div>';
+
+      var wrap = document.getElementById('sim-wrap');
+      (wrap ? wrap : document.body).appendChild(dock);
+
+      var area = dock.querySelector('#Debug_Log');
+
+      function hookLog(){
+        if (window.__DebugDockHooked__) return true;
+        if (typeof window.logDebug === 'function'){
+          var orig = window.logDebug;
+          window.logDebug = function(m){
+            try { orig.call(this, m); } finally {
+              var max = area.scrollHeight - area.clientHeight;
+              var atBottom = area.scrollTop >= (max - 4);
+              if (atBottom) area.scrollTop = area.scrollHeight;
+            }
+          };
+          window.__DebugDockHooked__ = true;
+          return true;
+        }
+        return false;
       }
-      #Debug_Log{
-        grid-column:1/2; grid-row:1;
-        width:95%; height:98%; resize:none; overflow:auto;
-        background:#f5f5f5; color:#000000;
-        border:1px solid #6b7280; border-radius:6px;
-        padding:8px; font:bold 18px/1.35 Consolas,"Courier New",monospace;
-        scrollbar-width:none; white-space:pre-wrap;
+
+      if (!hookLog()){
+        var tries = 0;
+        var iv = setInterval(function(){
+          tries++;
+          if (hookLog() || tries > 40) clearInterval(iv);
+        }, 250);
       }
-      #Debug_Log::-webkit-scrollbar{ width:0; height:0; }`;
-    var style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
-
-    var dock = document.createElement('div');
-    dock.id = 'DebugDock';
-    dock.innerHTML = '<div id="Debug_Log" spellcheck="false"></div>';
-    var _wrap = document.getElementById("sim-wrap");
-    (_wrap ? _wrap : document.body).appendChild(dock);
-
-    var area = dock.querySelector('#Debug_Log');
-
-    function hookLog(){
-      if (window.__DebugDockHooked__) return true;
-      if (typeof window.logDebug === 'function'){
-        var orig = window.logDebug;
-        window.logDebug = function(m){
-          try{ orig.call(this, m); } finally {
-            var max = area.scrollHeight - area.clientHeight;
-            var atBottom = area.scrollTop >= (max - 4);
-            if (atBottom){ area.scrollTop = area.scrollHeight; }
-          }
-        };
-        window.__DebugDockHooked__ = true;
-        return true;
-      }
-      return false;
     }
-    if (!hookLog()){
-      var tries = 0, iv = setInterval(function(){ tries++; if (hookLog() || tries > 40) clearInterval(iv); }, 250);
-    }
-  }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, {once:true});
-  else install();
-})();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', install, { once:true });
+    } else {
+      install();
+    }
+  })();
 </script></body>
 </html>
 
